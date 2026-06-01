@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -53,7 +53,7 @@
         <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
             
             <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" id="kpiSection">
-                </section>
+            </section>
 
             <section class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                 <h2 class="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
@@ -121,15 +121,52 @@
     </div>
 
     <div id="detailsModal" class="fixed inset-0 z-50 overflow-y-auto hidden bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-7xl w-full max-h-[95vh] flex flex-col overflow-hidden">
             <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900" id="modalTitle">Detalhamento e Ajustes de Rotas</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Edite datas e horários diretamente, apague trechos complementares/suplementares e registre justificativas de auditoria.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Edite diretamente. As mudanças alimentam a planilha de auditoria consolidada de forma automática.</p>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1 cursor-pointer">&times;</button>
             </div>
             
+            <div class="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3">
+                <h5 class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">➕ Inserir Nova Jornada Executada Manualmente</h5>
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 items-end">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Linha</label>
+                        <input type="text" id="add_linha" placeholder="Ex: 001" class="w-full border rounded p-1 text-xs bg-white uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Prefixo/Veíc</label>
+                        <input type="text" id="add_veiculo" placeholder="Ex: 1234" class="w-full border rounded p-1 text-xs bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Empresa/Local</label>
+                        <select id="add_local" class="w-full border rounded p-1 text-xs bg-white">
+                            <option value="TCCC">TCCC</option>
+                            <option value="SARANDI">SARANDI</option>
+                            <option value="PAICANDU">PAICANDU</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Data Início</label>
+                        <input type="date" id="add_data_ini" class="w-full border rounded p-1 text-xs bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Hora Início</label>
+                        <input type="text" id="add_hora_ini" placeholder="00:00" oninput="aplicarMascaraHora(this)" class="w-full border rounded p-1 text-xs bg-white text-center font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Hora Fim</label>
+                        <input type="text" id="add_hora_fim" placeholder="00:00" oninput="aplicarMascaraHora(this)" class="w-full border rounded p-1 text-xs bg-white text-center font-mono">
+                    </div>
+                    <div>
+                        <button onclick="adicionarNovaJornadaManual()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded text-xs shadow-sm transition cursor-pointer">Injetar Trecho</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex-1 p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col lg:col-span-4">
                     <h4 class="font-bold text-blue-700 text-sm border-b border-blue-100 pb-2 mb-3 flex items-center gap-1.5">
@@ -152,7 +189,7 @@
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col lg:col-span-8">
                     <h4 class="font-bold text-emerald-700 text-sm border-b border-emerald-100 pb-2 mb-3 flex items-center gap-1.5">
-                        ✅ Execução Realizada (Ajustes Operacionais com Controle de Datas)
+                        ✅ Execução Realizada (Ajustes Rápidos de Jornada)
                     </h4>
                     <div class="overflow-x-auto flex-1">
                         <table class="w-full text-xs text-left">
@@ -176,7 +213,6 @@
     </div>
 
 <script>
-        // Módulo de Armazenamento Local
         let modificacoes = JSON.parse(localStorage.getItem('modificacoes_jornada_v2')) || { excluidos: [], editados: {}, adicionados: [] };
         if(!modificacoes.adicionados) modificacoes.adicionados = [];
         
@@ -198,9 +234,23 @@
         let currentSearch = '';
         let processedSummaries = [];
         let originalEscalaHeader = [];
+        let currentModalMatricula = "";
         
-        // Definição da lista de motoristas ignorados na Falta Total e KPIs Macro
         const motoristasIgnoradosFalta = ["9072", "27372", "26627", "30982", "31478", "31974", "32672"];
+
+        // MÁSCARA AUTOMÁTICA DE DIGITAÇÃO DE HORAS (TEXTO EM VEZ DE RELÓGIO DO NAVEGADOR)
+        function aplicarMascaraHora(input) {
+            let v = input.value.replace(/\D/g, "");
+            if (v.length > 4) v = v.substring(0, 4);
+            if (v.length > 2) {
+                v = v.substring(0, 2) + ":" + v.substring(2);
+            }
+            input.value = v;
+        }
+
+        function validarFormatoHoraCompleto(valor) {
+            return /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(valor);
+        }
 
         function formatToInputDate(dateStr) {
             if (!dateStr || !dateStr.includes('/')) return dateStr;
@@ -253,7 +303,6 @@
         function processData() {
             const summaryMap = new Map();
 
-            // 1. Processar Programado
             escalaRaw.forEach(item => {
                 const mat = item.matricula;
                 if (!summaryMap.has(mat)) {
@@ -275,7 +324,6 @@
                 baseExecCompleta.push({...novoItem});
             });
 
-            // 2. Processar Executado
             baseExecCompleta.forEach((item, index) => {
                 const mat = item.matricula;
                 const registroId = item.registroIdTemp || `${mat}_${String(item.data_ini).replace(/[\/\-]/g,'')}_${String(item.hora_ini).replace(/:/g,'')}_${index}`;
@@ -313,7 +361,6 @@
                 if (!s.exe_end || dtEnd > s.exe_end) s.exe_end = dtEnd;
             });
 
-            // 3. Regras de Negócio e Cruzamentos Gerais
             processedSummaries = Array.from(summaryMap.values()).map(s => {
                 const saldo = s.executed_hours - s.planned_hours;
                 let status = 'OK';
@@ -361,14 +408,12 @@
             renderDashboard();
         }
 
-        // RENDERIZAÇÃO COMPLETA DE TODOS OS CARDS REORGANIZADOS
         function renderDashboard() {
             let totalPldHrs = 0, totalExeHrs = 0;
             let extrasCount = 0, menosCount = 0, absentCount = 0;
             let inconstCount = 0, overlapCount = 0, totalMotoristasValidos = 0;
 
             processedSummaries.forEach(s => {
-                // Remove as exceções fixas dos cálculos e contadores macros
                 if (motoristasIgnoradosFalta.includes(String(s.matricula))) {
                     if (s.tem_sobreposição) overlapCount++;
                     if (s.tem_inconsistencia_madrugada) inconstCount++;
@@ -388,7 +433,6 @@
 
             let saldoGlobalDecimal = totalExeHrs - totalPldHrs;
 
-            // Renderiza todas as caixas de KPIs mantendo o comparativo unificado com o saldo global
             document.getElementById('kpiSection').innerHTML = `
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Motoristas</p><h3 class="text-2xl font-bold text-slate-900 mt-0.5">${totalMotoristasValidos}</h3></div>
                 
@@ -456,16 +500,31 @@
         }
 
         function openDetails(matricula) {
+            currentModalMatricula = matricula;
             const s = processedSummaries.find(x => x.matricula === matricula); if (!s) return;
             document.getElementById('modalTitle').innerText = `Matrícula: ${matricula} - Histórico Operacional Completo`;
             
+            if(dataDetectadaArquivo && dataDetectadaArquivo.length === 8) {
+                const ano = dataDetectadaArquivo.substring(0,4);
+                const mes = dataDetectadaArquivo.substring(4,6);
+                const dia = dataDetectadaArquivo.substring(6,8);
+                document.getElementById('add_data_ini').value = `${ano}-${mes}-${dia}`;
+            }
+
             const pBody = document.getElementById('modalPlannedTableBody');
             pBody.innerHTML = s.planned_segments.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-slate-400">Nenhuma escala programada.</td></tr>` : '';
             s.planned_segments.sort((a, b) => parseDateTime(a.data_ini, a.hora_ini) - parseDateTime(b.data_ini, b.hora_ini));
             s.planned_segments.forEach(seg => {
+                const ehSuplementar = seg.escala && seg.escala.toUpperCase().includes('SUPLEMENTAR');
                 pBody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-100">
-                        <td class="py-2.5 px-2 font-medium text-slate-700"><div>${seg.linha}</div><div class="text-[10px] text-slate-400">${seg.data_ini}</div></td>
+                        <td class="py-2.5 px-2 font-medium text-slate-700">
+                            <div class="flex items-center gap-1.5">
+                                <span>${seg.linha}</span>
+                                ${ehSuplementar ? '<span class="px-1 py-0.2 text-[9px] bg-indigo-100 text-indigo-700 rounded font-bold">SUP</span>' : ''}
+                            </div>
+                            <div class="text-[10px] text-slate-400">${seg.data_ini}</div>
+                        </td>
                         <td class="py-2.5 px-2 text-slate-500">${seg.hora_ini}</td>
                         <td class="py-2.5 px-2 text-slate-500">${seg.hora_fim}</td>
                         <td class="py-2.5 px-2 text-right font-medium text-slate-600">${formatHrsToHM(seg.duration)}</td>
@@ -478,12 +537,8 @@
 
             segmentosExecutados.forEach((seg, idx) => {
                 linhasVisiveis++;
-                let possuiHistorico = !!modificacoes.editados[seg.registroId];
-                let justificativaText = possuiHistorico ? modificacoes.editados[seg.registroId].justificativa : "";
-                
                 const hStart = seg.hora_ini;
                 const isResiduoMadrugada = (hStart >= "00:00:00" && hStart <= "01:30:00");
-                const ehCompl = String(seg.linha).toUpperCase().includes('COMPL');
                 const ehReservaOuPlantao = verificarSeEhLinhaReservaPlantao(seg.linha);
 
                 let trechoSobreposto = false;
@@ -495,42 +550,128 @@
                     }
                 });
 
-                let podeExcluir = ehCompl || isResiduoMadrugada || trechoSobreposto || ehReservaOuPlantao;
                 let dIniOriginal = seg.data_ini, dFimOriginal = seg.data_fim, hIniOriginal = seg.hora_ini, hFimOriginal = seg.hora_fim;
 
+                // CAMPOS DE HORAS DA TABELA MUDADOS PARA TYPE="TEXT" COM MÁSCARA AUTOMÁTICA
                 eBody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-100 ${trechoSobreposto ? 'bg-purple-50' : isResiduoMadrugada ? 'bg-red-50/50' : ''}">
                         <td class="py-2.5 px-2 font-medium text-slate-700">
                             <div class="flex flex-wrap items-center gap-1">
                                 <span class="font-bold">${seg.linha}</span>
                                 ${ehReservaOuPlantao ? '<span class="text-[9px] bg-blue-100 text-blue-800 px-1 font-bold rounded">PLANTÃO/RES</span>' : ''}
-                                ${trechoSobreposto ? '<span class="text-[9px] bg-purple-200 text-purple-900 px-1 font-bold rounded animate-pulse">⚠️ CONFLITO</span>' : ''}
+                                ${trechoSobreposto ? '<span class="text-[9px] bg-purple-200 text-purple-900 px-1 font-bold rounded">CONFLITO</span>' : ''}
                             </div>
                             <div class="text-[10px] text-slate-400">Pref: ${seg.veiculo} | <span class="font-mono text-emerald-700 font-bold">${seg.local}</span></div>
                         </td>
                         <td class="py-2.5 px-2">
                             <div class="flex flex-col gap-1">
-                                <input type="date" value="${formatToInputDate(seg.data_ini)}" onchange="solicitarJustificativaCompleta('${seg.registroId}', this.value, 'data_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[115px] outline-none bg-slate-50 focus:bg-white">
-                                <input type="time" value="${String(seg.hora_ini).substring(0,5)}" onchange="solicitarJustificativaCompleta('${seg.registroId}', this.value, 'hora_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-20 outline-none bg-slate-50 focus:bg-white">
+                                <input type="date" value="${formatToInputDate(seg.data_ini)}" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'data_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[115px] outline-none bg-white">
+                                <input type="text" value="${String(seg.hora_ini).substring(0,5)}" placeholder="00:00" oninput="aplicarMascaraHora(this)" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'hora_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-20 outline-none bg-white text-center font-mono">
                             </div>
                         </td>
                         <td class="py-2.5 px-2">
                             <div class="flex flex-col gap-1">
-                                <input type="date" value="${formatToInputDate(seg.data_fim)}" onchange="solicitarJustificativaCompleta('${seg.registroId}', this.value, 'data_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[115px] outline-none bg-slate-50 focus:bg-white">
-                                <input type="time" value="${String(seg.hora_fim).substring(0,5)}" onchange="solicitarJustificativaCompleta('${seg.registroId}', this.value, 'hora_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-20 outline-none bg-slate-50 focus:bg-white">
+                                <input type="date" value="${formatToInputDate(seg.data_fim)}" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'data_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[115px] outline-none bg-white">
+                                <input type="text" value="${String(seg.hora_fim).substring(0,5)}" placeholder="00:00" oninput="aplicarMascaraHora(this)" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'hora_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-20 outline-none bg-white text-center font-mono">
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center flex flex-col items-center justify-center gap-1">
-                            ${podeExcluir ? `<button onclick="excluirSegmento('${seg.registroId}', '${s.matricula}')" class="w-full text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-1.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer">🗑️ Remover</button>` : ''}
+                            <button onclick="excluirSegmento('${seg.registroId}', '${s.matricula}')" class="w-full text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-1.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer">🗑️ Remover</button>
                             ${ehReservaOuPlantao ? `<button onclick="fatiarReserva('${seg.registroId}', '${s.matricula}', '${seg.data_ini}', '${seg.data_fim}', '${seg.hora_ini}', '${seg.hora_fim}')" class="w-full text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-1.5 py-1 rounded text-[11px] font-bold transition cursor-pointer">✂️ Dividir</button>` : ''}
                         </td>
                     </tr>
-                    ${possuiHistorico ? `<tr><td colspan="4" class="px-3 py-1 text-[11px] text-slate-600 bg-amber-50/50 italic border-b">Docs: 📝 <strong>Motivo:</strong> "${justificativaText}"</td></tr>` : ''}
                 `;
             });
 
             if (linhasVisiveis === 0) eBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">Nenhum trecho operacional ativo.</td></tr>`;
             document.getElementById('detailsModal').classList.remove('hidden');
+        }
+
+        function atualizarCampoDireto(registroId, novoValor, campo, dIniOriginal, dFimOriginal, hIniOriginal, hFimOriginal) {
+            let valorFormatado = novoValor;
+            if (campo === 'hora_ini' || campo === 'hora_fim') {
+                if (!validarFormatoHoraCompleto(novoValor)) {
+                    alert("⚠️ Formato de hora inválido! Use o padrão HH:MM (Ex: 13:00)");
+                    openDetails(currentModalMatricula);
+                    return;
+                }
+                valorFormatado = novoValor + ":00";
+            } else {
+                valorFormatado = formatFromInputToBrazil(novoValor);
+            }
+
+            if (!modificacoes.editados[registroId]) {
+                modificacoes.editados[registroId] = { 
+                    data_ini: dIniOriginal, 
+                    data_fim: dFimOriginal, 
+                    hora_ini: hIniOriginal, 
+                    hora_fim: hFimOriginal, 
+                    justificativa: "" 
+                };
+            }
+            
+            modificacoes.editados[registroId][campo] = valorFormatado;
+            modificacoes.editados[registroId].justificativa = `Ajuste rapido de ${campo} para ${valorFormatado}. Original: ${campo === 'hora_ini' ? hIniOriginal : campo === 'hora_fim' ? hFimOriginal : campo === 'data_ini' ? dIniOriginal : dFimOriginal}`;
+
+            guardarAlteracoes(); 
+            processData(); 
+            openDetails(currentModalMatricula);
+        }
+
+        function adicionarNovaJornadaManual() {
+            const linha = document.getElementById('add_linha').value.trim();
+            const veiculo = document.getElementById('add_veiculo').value.trim();
+            const local = document.getElementById('add_local').value;
+            const data_ini = document.getElementById('add_data_ini').value;
+            const hora_ini = document.getElementById('add_hora_ini').value;
+            const hora_fim = document.getElementById('add_hora_fim').value;
+
+            if(!linha || !veiculo || !data_ini || !hora_ini || !hora_fim) {
+                alert("⚠️ Por favor, preencha todos os campos para inserir a nova jornada.");
+                return;
+            }
+
+            if (!validarFormatoHoraCompleto(hora_ini) || !validarFormatoHoraCompleto(hora_fim)) {
+                alert("⚠️ Por favor, digite as horas corretamente no formato HH:MM (Exemplo: 13:00)");
+                return;
+            }
+
+            const dataFormatada = formatFromInputToBrazil(data_ini);
+            const hIniCompleta = hora_ini + ":00";
+            const hFimCompleta = hora_fim + ":00";
+            const novoId = `ADD_${currentModalMatricula}_MANUAL_${Date.now()}`;
+
+            const novaJornada = {
+                escala: "INSERÇÃO MANUAL AUDITORIA",
+                data_ini: dataFormatada, 
+                data_fim: dataFormatada, 
+                hora_ini: hIniCompleta, 
+                hora_fim: hFimCompleta,
+                matricula: currentModalMatricula, 
+                veiculo: veiculo, 
+                linha: linha,
+                col8: "001", col9: "001", col10: "000",
+                local: local, 
+                duration: getDurationHrs(dataFormatada, hIniCompleta, dataFormatada, hFimCompleta),
+                registroIdTemp: novoId
+            };
+
+            modificacoes.adicionados.push(novaJornada);
+            
+            modificacoes.editados[novoId] = {
+                data_ini: dataFormatada, data_fim: dataFormatada, hora_ini: hIniCompleta, hora_fim: hFimCompleta,
+                justificativa: `Jornada injetada manualmente na auditoria para a empresa ${local} na linha ${linha}.`
+            };
+
+            guardarAlteracoes(); 
+            processData(); 
+            openDetails(currentModalMatricula);
+
+            document.getElementById('add_linha').value = "";
+            document.getElementById('add_veiculo').value = "";
+            document.getElementById('add_hora_ini').value = "";
+            document.getElementById('add_hora_fim').value = "";
+            alert("Trecho operacional inserido com sucesso!");
         }
 
         function fatiarReserva(registroId, matricula, dataIni, dataFim, horaIni, horaFim) {
@@ -547,19 +688,12 @@
                 return;
             }
 
-            const justificativa = prompt("Digite obrigatoriamente a justificativa para a quebra automática desta linha:");
-            if (!justificativa || justificativa.trim() === "") {
-                alert("Operação abortada. Justificativa obrigatória!");
-                return;
-            }
-
             modificacoes.editados[registroId] = {
                 data_ini: dataIni, data_fim: dataIni, hora_ini: horaIni, hora_fim: tFatiarIni,
-                justificativa: `[Plantão Reduzido] Cortado devido a linha feita entre ${hViagemInicio} e ${hViagemFim}. Motivo: ${justificativa}`
+                justificativa: `[Plantao Reduzido] Cortado devido a linha realizada entre ${hViagemInicio} e ${hViagemFim}.`
             };
 
-            let ref = execRaw.find(x => x.registroIdTemp === registroId);
-            if (!ref) { ref = modificacoes.adicionados.find(x => x.registroIdTemp === registroId); }
+            let ref = execRaw.find(x => x.registroIdTemp === registroId) || modificacoes.adicionados.find(x => x.registroIdTemp === registroId);
 
             const novoIdPost = `ADD_${matricula}_RES_${Date.now()}`;
             const novaReservaPost = {
@@ -575,52 +709,16 @@
             
             modificacoes.editados[novoIdPost] = {
                 data_ini: dataFim, data_fim: dataFim, hora_ini: tFatiarFim, hora_fim: horaFim,
-                justificativa: `[Pedaço Final Plantão] Gerado automaticamente após viagem. Original: ${horaIni.substring(0,5)} a ${horaFim.substring(0,5)}`
+                justificativa: `[Pedaco Final Plantao] Gerado automaticamente apos divisao.`
             };
 
             guardarAlteracoes(); processData(); openDetails(matricula);
-            alert("Sucesso! O plantão foi quebrado com precisão.");
         }
 
         function excluirSegmento(registroId, matricula) {
             if (confirm("Remover definitivamente este trecho realizado? O saldo do motorista será recalculado.")) {
                 modificacoes.excluidos.push(registroId);
                 guardarAlteracoes(); processData(); openDetails(matricula);
-            }
-        }
-
-        function solicitarJustificativaCompleta(registroId, novoValor, campo, dIniOriginal, dFimOriginal, hIniOriginal, hFimOriginal) {
-            let valorFormatado = novoValor;
-            if (campo === 'hora_ini' || campo === 'hora_fim') {
-                if(novoValor.length === 5) valorFormatado = novoValor + ":00";
-            } else {
-                valorFormatado = formatFromInputToBrazil(novoValor);
-            }
-
-            if (modificacoes.editados[registroId]) {
-                if (campo === 'data_ini' && modificacoes.editados[registroId].data_ini === valorFormatado) return;
-                if (campo === 'data_fim' && modificacoes.editados[registroId].data_fim === valorFormatado) return;
-                if (campo === 'hora_ini' && modificacoes.editados[registroId].hora_ini === valorFormatado) return;
-                if (campo === 'hora_fim' && modificacoes.editados[registroId].hora_fim === valorFormatado) return;
-            } else {
-                if (campo === 'data_ini' && valorFormatado === dIniOriginal) return;
-                if (campo === 'data_fim' && valorFormatado === dFimOriginal) return;
-                if (campo === 'hora_ini' && valorFormatado === hIniOriginal) return;
-                if (campo === 'hora_fim' && valorFormatado === hFimOriginal) return;
-            }
-
-            const justificativa = prompt(`Alteração detectada no campo [${campo}] para o valor: ${valorFormatado}.\nPor favor, digite o motivo legal/operacional:`);
-            const matricula = registroId.split('_')[0];
-
-            if (justificativa && justificativa.trim() !== "") {
-                if (!modificacoes.editados[registroId]) {
-                    modificacoes.editados[registroId] = { data_ini: dIniOriginal, data_fim: dFimOriginal, hora_ini: hIniOriginal, hora_fim: hFimOriginal, justificativa: "" };
-                }
-                modificacoes.editados[registroId][campo] = valorFormatado;
-                modificacoes.editados[registroId].justificativa = justificativa.trim();
-                guardarAlteracoes(); processData(); openDetails(matricula); 
-            } else {
-                alert("Ação cancelada! Justificativa obrigatória."); openDetails(matricula);
             }
         }
 
@@ -635,7 +733,6 @@
             renderTable();
         }
 
-        // Leitor XLSX Nátivo
         document.getElementById('excelMasterFile').addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
             const matches = file.name.match(/\d{8}/);
@@ -690,10 +787,18 @@
         }
 
         function exportarProcessamentoCompleto() {
-            if (execRaw.length === 0) { alert("Nenhum registro ativo disponível."); return; }
+            if (execRaw.length === 0 && modificacoes.adicionados.length === 0) { alert("Nenhum registro ativo disponível."); return; }
             let arquivosPorEmpresa = {};
             let linhasAuditoria = ["Matricula,Empresa,Data_Item,Linha_Original,Acao_Realizada,Inicio_Original,Inicio_Ajustado,Fim_Original,Fim_Ajustado,Justificativa_Motivo"];
             let totalAlteracoes = 0;
+
+            modificacoes.excluidos.forEach(idExcluido => {
+                let originalItem = execRaw.find(x => x.registroIdTemp === idExcluido);
+                if (originalItem) {
+                    linhasAuditoria.push([originalItem.matricula, originalItem.local, originalItem.data_ini, originalItem.linha, "REMOVIDO EM AUDITORIA", `${originalItem.data_ini} ${originalItem.hora_ini}`, "REMOVIDO", `${originalItem.data_fim} ${originalItem.hora_fim}`, "REMOVIDO", "Remocao manual de excesso ou reserva"].join(","));
+                    totalAlteracoes++;
+                }
+            });
 
             let baseCompletaExport = [...execRaw, ...modificacoes.adicionados];
 
@@ -702,10 +807,7 @@
                 const empresaNome = originalItem.local;
                 if (!arquivosPorEmpresa[empresaNome]) arquivosPorEmpresa[empresaNome] = [];
 
-                if (modificacoes.excluidos.includes(idReg)) {
-                    linhasAuditoria.push([originalItem.matricula, empresaNome, originalItem.data_ini, originalItem.linha, "REMOVIDO EM AUDITORIA", `${originalItem.data_ini} ${originalItem.hora_ini}`, "REMOVIDO", `${originalItem.data_fim} ${originalItem.hora_fim}`, "REMOVIDO", "Remocao manual de excesso ou reserva"].join(","));
-                    totalAlteracoes++; return;
-                }
+                if (modificacoes.excluidos.includes(idReg)) return;
 
                 let dIniFinal = originalItem.data_ini, dFimFinal = originalItem.data_fim, hIniFinal = originalItem.hora_ini, hFimFinal = originalItem.hora_fim;
                 let foiEditado = false;
@@ -717,7 +819,8 @@
                 }
 
                 if (foiEditado) {
-                    linhasAuditoria.push([originalItem.matricula, empresaNome, originalItem.data_ini, originalItem.linha, "ALTERACAO/QUEBRA DE JORNADA", `${originalItem.data_ini} ${originalItem.hora_ini}`, `${dIniFinal} ${hIniFinal}`, `${originalItem.data_fim} ${originalItem.hora_fim}`, `${dFimFinal} ${hFimFinal}`, `"${modificacoes.editados[idReg].justificativa.replace(/"/g, '""')}"`].join(","));
+                    let justificativaSalva = modificacoes.editados[idReg].justificativa || "Ajuste manual rapido.";
+                    linhasAuditoria.push([originalItem.matricula, empresaNome, originalItem.data_ini, originalItem.linha, "ALTERACAO/QUEBRA DE JORNADA", `${originalItem.data_ini} ${originalItem.hora_ini}`, `${dIniFinal} ${hIniFinal}`, `${originalItem.data_fim} ${originalItem.hora_fim}`, `${dFimFinal} ${hFimFinal}`, `"${justificativaSalva.replace(/"/g, '""')}"`].join(","));
                     totalAlteracoes++;
                 }
 
@@ -732,8 +835,10 @@
 
             let delay = 0;
             for (const empresa in arquivosPorEmpresa) {
-                setTimeout(() => { dispararDownload(arquivosPorEmpresa[empresa].join("\n"), `${dataDetectadaArquivo} - ${empresa}.csv`); }, delay);
-                delay += 300;
+                if(arquivosPorEmpresa[empresa].length > 0) {
+                    setTimeout(() => { dispararDownload(arquivosPorEmpresa[empresa].join("\n"), `${dataDetectadaArquivo} - ${empresa}.csv`); }, delay);
+                    delay += 300;
+                }
             }
 
             if (totalAlteracoes > 0) {
@@ -756,7 +861,6 @@
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // Funções de controle de abertura/fechamento do dropdown de cabeçalho
         function toggleMenuGestao(event) { event.stopPropagation(); document.getElementById('menuGestaoDropdown').classList.toggle('hidden'); }
         function fecharMenuGestao() { document.getElementById('menuGestaoDropdown').classList.add('hidden'); }
     </script>
