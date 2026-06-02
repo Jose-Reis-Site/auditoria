@@ -31,7 +31,7 @@
                     </div>
                     <div class="p-2 space-y-1">
                         <button onclick="exportarProcessamentoCompleto(); fecharMenuGestao();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition flex items-center gap-2 cursor-pointer">
-                            📥 1. Exportar CSVs por Empresa
+                            📥 1. Exportar CSVs (Empresas + Suplementar)
                         </button>
                         <button onclick="baixarAbaEscalaPura(); fecharMenuGestao();" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-amber-700 hover:bg-amber-50 transition flex items-center gap-2 cursor-pointer">
                             📋 2. Baixar CSV da Escala Pura
@@ -125,14 +125,14 @@
             <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900" id="modalTitle">Detalhamento e Ajustes de Rotas</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Edite diretamente. As mudanças alimentam a planilha de auditoria consolidada de forma automática.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Defina se o trecho é Diária/Suplementar e altere a Empresa de destino individualmente caso o motorista rode em duas bandeiras.</p>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1 cursor-pointer">&times;</button>
             </div>
             
             <div class="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3">
                 <h5 class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">➕ Inserir Nova Jornada Executada Manualmente</h5>
-                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 items-end">
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 items-end">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-600 uppercase">Linha</label>
                         <input type="text" id="add_linha" placeholder="Ex: 001" class="w-full border rounded p-1 text-xs bg-white uppercase">
@@ -147,6 +147,13 @@
                             <option value="TCCC">TCCC</option>
                             <option value="SARANDI">SARANDI</option>
                             <option value="PAICANDU">PAICANDU</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-600 uppercase">Tipo Carga</label>
+                        <select id="add_tipo_jornada" class="w-full border rounded p-1 text-xs bg-white font-semibold">
+                            <option value="DIARIA">DIÁRIA</option>
+                            <option value="SUPLEMENTAR">SUPLEMENTAR</option>
                         </select>
                     </div>
                     <div>
@@ -195,9 +202,9 @@
                         <table class="w-full text-xs text-left">
                             <thead class="bg-slate-50 text-slate-600 font-semibold uppercase">
                                 <tr>
-                                    <th class="py-2 px-2">Linha/Veíc</th>
-                                    <th class="py-2 px-2 w-36">Início (Data e Hora)</th>
-                                    <th class="py-2 px-2 w-36">Fim (Data e Hora)</th>
+                                    <th class="py-2 px-2">Linha/Parâmetros</th>
+                                    <th class="py-2 px-2 w-32">Início</th>
+                                    <th class="py-2 px-2 w-32">Fim</th>
                                     <th class="py-2 px-2 text-center">Ações</th>
                                 </tr>
                             </thead>
@@ -213,10 +220,10 @@
     </div>
 
 <script>
-        let modificacoes = JSON.parse(localStorage.getItem('modificacoes_jornada_v2')) || { excluidos: [], editados: {}, adicionados: [] };
+        let modificacoes = JSON.parse(localStorage.getItem('modificacoes_jornada_v3')) || { excluidos: [], editados: {}, adicionados: [] };
         if(!modificacoes.adicionados) modificacoes.adicionados = [];
         
-        function guardarAlteracoes() { localStorage.setItem('modificacoes_jornada_v2', JSON.stringify(modificacoes)); }
+        function guardarAlteracoes() { localStorage.setItem('modificacoes_jornada_v3', JSON.stringify(modificacoes)); }
         
         function limparStorageAuditoria() {
             if (confirm("⚠️ Deseja resetar todas as exclusões, divisões de reservas e horários editados na memória do navegador?")) {
@@ -238,13 +245,10 @@
         
         const motoristasIgnoradosFalta = ["9072", "27372", "26627", "30982", "31478", "31974", "32672"];
 
-        // MÁSCARA AUTOMÁTICA DE DIGITAÇÃO DE HORAS (TEXTO EM VEZ DE RELÓGIO DO NAVEGADOR)
         function aplicarMascaraHora(input) {
             let v = input.value.replace(/\D/g, "");
             if (v.length > 4) v = v.substring(0, 4);
-            if (v.length > 2) {
-                v = v.substring(0, 2) + ":" + v.substring(2);
-            }
+            if (v.length > 2) { v = v.substring(0, 2) + ":" + v.substring(2); }
             input.value = v;
         }
 
@@ -336,12 +340,14 @@
                 let horaIniUsada = item.hora_ini;
                 let horaFimUsada = item.hora_fim;
                 let duracaoUsada = item.duration;
+                let localUsado = item.local;
 
                 if (modificacoes.editados[registroId]) {
-                    dataIniUsada = modificacoes.editados[registroId].data_ini;
-                    dataFimUsada = modificacoes.editados[registroId].data_fim;
-                    horaIniUsada = modificacoes.editados[registroId].hora_ini;
-                    horaFimUsada = modificacoes.editados[registroId].hora_fim;
+                    dataIniUsada = modificacoes.editados[registroId].data_ini || dataIniUsada;
+                    dataFimUsada = modificacoes.editados[registroId].data_fim || dataFimUsada;
+                    horaIniUsada = modificacoes.editados[registroId].hora_ini || horaIniUsada;
+                    horaFimUsada = modificacoes.editados[registroId].hora_fim || horaFimUsada;
+                    localUsado = modificacoes.editados[registroId].local || localUsado;
                     duracaoUsada = getDurationHrs(dataIniUsada, horaIniUsada, dataFimUsada, horaFimUsada);
                 }
 
@@ -353,7 +359,7 @@
                 if (horaIniUsada >= "00:00:00" && horaIniUsada <= "01:30:00") s.tem_inconsistencia_madrugada = true;
 
                 s.executed_hours += duracaoUsada;
-                s.executed_segments.push({ ...item, data_ini: dataIniUsada, data_fim: dataFimUsada, hora_ini: horaIniUsada, hora_fim: horaFimUsada, duration: duracaoUsada, registroId: registroId });
+                s.executed_segments.push({ ...item, data_ini: dataIniUsada, data_fim: dataFimUsada, hora_ini: horaIniUsada, hora_fim: horaFimUsada, local: localUsado, duration: duracaoUsada, registroId: registroId });
 
                 const dtStart = parseDateTime(dataIniUsada, horaIniUsada);
                 const dtEnd = parseDateTime(dataFimUsada, horaFimUsada);
@@ -419,11 +425,9 @@
                     if (s.tem_inconsistencia_madrugada) inconstCount++;
                     return; 
                 }
-
                 totalMotoristasValidos++;
                 totalPldHrs += s.planned_hours; 
                 totalExeHrs += s.executed_hours;
-                
                 if (s.status === 'Hora Extra') extrasCount++;
                 if (s.status === 'Hora Faltante') menosCount++;
                 if (s.status === 'Falta Total') absentCount++;
@@ -435,7 +439,6 @@
 
             document.getElementById('kpiSection').innerHTML = `
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"><p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Motoristas</p><h3 class="text-2xl font-bold text-slate-900 mt-0.5">${totalMotoristasValidos}</h3></div>
-                
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm lg:col-span-2 flex justify-between items-center">
                     <div>
                         <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Prog. vs Executado</p>
@@ -446,11 +449,9 @@
                         <h3 class="text-lg font-black mt-0.5 ${saldoGlobalDecimal >= 0 ? 'text-emerald-600':'text-rose-600'}">${formatHrsToHM(saldoGlobalDecimal)}</h3>
                     </div>
                 </div>
-
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-purple-50/60"><p class="text-[11px] font-bold text-purple-600 uppercase tracking-wider">⚠️ Sobrepostos</p><h3 class="text-2xl font-bold text-purple-700 mt-0.5">${overlapCount}</h3></div>
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-rose-50/60"><p class="text-[11px] font-bold text-red-600 uppercase tracking-wider">🚨 Resíduos 00h-01h30</p><h3 class="text-2xl font-bold text-red-600 mt-0.5">${inconstCount}</h3></div>
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-amber-50/40"><p class="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Alerta H. Extra</p><h3 class="text-2xl font-bold text-amber-600 mt-0.5">${extrasCount}</h3></div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm bg-rose-50/30"><p class="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Faltas / Reduções</p><h3 class="text-2xl font-bold text-rose-700 mt-0.5">${absentCount + menosCount}</h3></div>
             `;
             renderTable();
         }
@@ -478,20 +479,17 @@
                 let statusLabel = s.status;
                 if (s.violacao_intrajornada) statusLabel += ' + ⚠️ s/ Int. 1h';
                 if (s.tem_sobreposição) statusLabel += ' | ⚠️ Sobreposto';
-                if (s.tem_inconsistencia_madrugada) statusLabel += ' | 🚨 Madrugada';
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition ${s.tem_sobreposição ? 'bg-purple-50/40' : s.tem_inconsistencia_madrugada ? 'bg-red-50/40' : s.has_suplementar ? 'bg-indigo-50/30' : ''}">
                         <td class="px-6 py-4 font-semibold text-slate-900 flex flex-wrap items-center gap-1">
                             ${s.matricula} 
                             ${s.has_suplementar ? '<span class="px-1.5 py-0.5 text-[9px] bg-indigo-100 text-indigo-700 rounded font-bold">SUP</span>' : ''}
-                            ${s.tem_inconsistencia_madrugada ? '<span class="px-1.5 py-0.5 text-[9px] bg-red-100 text-red-700 rounded font-bold">RESI</span>' : ''}
-                            ${s.tem_sobreposição ? '<span class="px-1.5 py-0.5 text-[9px] bg-purple-100 text-purple-700 rounded font-bold">SOBREP</span>' : ''}
                         </td>
                         <td class="px-6 py-4 text-slate-500">${s.pld_start ? formatTime(s.pld_start) + ' - ' + formatTime(s.pld_end) : '--:--'}</td>
                         <td class="px-6 py-4 font-medium">${formatHrsToHM(s.planned_hours)}</td>
                         <td class="px-6 py-4 text-slate-500">${s.exe_start ? formatTime(s.exe_start) + ' - ' + formatTime(s.exe_end) : '--:--'}</td>
-                        <td class="px-6 py-4 font-medium">${formatHrsToHM(s.executed_hours)} ${s.violacao_intrajornada ? `<div class="text-[10px] text-orange-600 font-normal">Maior int: ${Math.round(s.max_break_mins)} min</div>` : ''}</td>
+                        <td class="px-6 py-4 font-medium">${formatHrsToHM(s.executed_hours)}</td>
                         <td class="px-6 py-4 ${saldoClass}">${formatHrsToHM(s.saldo)}</td>
                         <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ${badgeClass}">${statusLabel}</span></td>
                         <td class="px-6 py-4 text-center"><button onclick="openDetails('${s.matricula}')" class="text-emerald-700 font-semibold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-md transition cursor-pointer">Ajustar / Ver</button></td>
@@ -551,33 +549,51 @@
                 });
 
                 let dIniOriginal = seg.data_ini, dFimOriginal = seg.data_fim, hIniOriginal = seg.hora_ini, hFimOriginal = seg.hora_fim;
+                
+                // Descobrir tipo atual salvo na memória
+                let tipoAtualJornada = "DIARIA";
+                if (seg.escala && seg.escala.toUpperCase().includes("SUPLEMENTAR")) tipoAtualJornada = "SUPLEMENTAR";
+                if (modificacoes.editados[seg.registroId] && modificacoes.editados[seg.registroId].tipo_jornada) {
+                    tipoAtualJornada = modificacoes.editados[seg.registroId].tipo_jornada;
+                }
 
-                // CAMPOS DE HORAS DA TABELA MUDADOS PARA TYPE="TEXT" COM MÁSCARA AUTOMÁTICA
+                // ADICIONADOS CONTROLES DE EMPRESA E DIARIA/SUPLEMENTAR EM CADA LINHA
                 eBody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-100 ${trechoSobreposto ? 'bg-purple-50' : isResiduoMadrugada ? 'bg-red-50/50' : ''}">
                         <td class="py-2.5 px-2 font-medium text-slate-700">
-                            <div class="flex flex-wrap items-center gap-1">
-                                <span class="font-bold">${seg.linha}</span>
-                                ${ehReservaOuPlantao ? '<span class="text-[9px] bg-blue-100 text-blue-800 px-1 font-bold rounded">PLANTÃO/RES</span>' : ''}
-                                ${trechoSobreposto ? '<span class="text-[9px] bg-purple-200 text-purple-900 px-1 font-bold rounded">CONFLITO</span>' : ''}
+                            <div class="flex flex-wrap items-center gap-1 mb-1">
+                                <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">${seg.linha}</span>
+                                ${ehReservaOuPlantao ? '<span class="text-[9px] bg-blue-100 text-blue-800 px-1 font-bold rounded">PLANTÃO</span>' : ''}
                             </div>
-                            <div class="text-[10px] text-slate-400">Pref: ${seg.veiculo} | <span class="font-mono text-emerald-700 font-bold">${seg.local}</span></div>
+                            
+                            <div class="flex flex-col gap-1 mt-1">
+                                <select onchange="atualizarParametroDireto('${seg.registroId}', this.value, 'local')" class="text-[10px] border rounded bg-white p-0.5 font-bold text-emerald-800 outline-none">
+                                    <option value="TCCC" ${seg.local === 'TCCC' ? 'selected':''}>TCCC</option>
+                                    <option value="SARANDI" ${seg.local === 'SARANDI' ? 'selected':''}>SARANDI</option>
+                                    <option value="PAICANDU" ${seg.local === 'PAICANDU' ? 'selected':''}>PAICANDU</option>
+                                </select>
+                                <select onchange="atualizarParametroDireto('${seg.registroId}', this.value, 'tipo_jornada')" class="text-[10px] border rounded bg-white p-0.5 font-bold text-indigo-800 outline-none">
+                                    <option value="DIARIA" ${tipoAtualJornada === 'DIARIA' ? 'selected':''}>DIÁRIA</option>
+                                    <option value="SUPLEMENTAR" ${tipoAtualJornada === 'SUPLEMENTAR' ? 'selected':''}>SUPLEMENTAR</option>
+                                </select>
+                            </div>
+                            <div class="text-[9px] text-slate-400 mt-1">Pref: ${seg.veiculo}</div>
                         </td>
                         <td class="py-2.5 px-2">
                             <div class="flex flex-col gap-1">
-                                <input type="date" value="${formatToInputDate(seg.data_ini)}" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'data_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[115px] outline-none bg-white">
-                                <input type="text" value="${String(seg.hora_ini).substring(0,5)}" placeholder="00:00" oninput="aplicarMascaraHora(this)" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'hora_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-20 outline-none bg-white text-center font-mono">
+                                <input type="date" value="${formatToInputDate(seg.data_ini)}" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'data_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[110px] outline-none bg-white">
+                                <input type="text" value="${String(seg.hora_ini).substring(0,5)}" placeholder="00:00" oninput="aplicarMascaraHora(this)" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'hora_ini', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-16 outline-none bg-white text-center font-mono">
                             </div>
                         </td>
                         <td class="py-2.5 px-2">
                             <div class="flex flex-col gap-1">
-                                <input type="date" value="${formatToInputDate(seg.data_fim)}" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'data_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[115px] outline-none bg-white">
-                                <input type="text" value="${String(seg.hora_fim).substring(0,5)}" placeholder="00:00" oninput="aplicarMascaraHora(this)" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'hora_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-20 outline-none bg-white text-center font-mono">
+                                <input type="date" value="${formatToInputDate(seg.data_fim)}" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'data_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-[11px] w-[110px] outline-none bg-white">
+                                <input type="text" value="${String(seg.hora_fim).substring(0,5)}" placeholder="00:00" oninput="aplicarMascaraHora(this)" onchange="atualizarCampoDireto('${seg.registroId}', this.value, 'hora_fim', '${dIniOriginal}', '${dFimOriginal}', '${hIniOriginal}', '${hFimOriginal}')" class="border rounded p-0.5 text-xs w-16 outline-none bg-white text-center font-mono">
                             </div>
                         </td>
                         <td class="py-2.5 px-2 text-center flex flex-col items-center justify-center gap-1">
-                            <button onclick="excluirSegmento('${seg.registroId}', '${s.matricula}')" class="w-full text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-1.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer">🗑️ Remover</button>
-                            ${ehReservaOuPlantao ? `<button onclick="fatiarReserva('${seg.registroId}', '${s.matricula}', '${seg.data_ini}', '${seg.data_fim}', '${seg.hora_ini}', '${seg.hora_fim}')" class="w-full text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-1.5 py-1 rounded text-[11px] font-bold transition cursor-pointer">✂️ Dividir</button>` : ''}
+                            <button onclick="excluirSegmento('${seg.registroId}', '${s.matricula}')" class="w-full text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-1.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer">🗑️</button>
+                            ${ehReservaOuPlantao ? `<button onclick="fatiarReserva('${seg.registroId}', '${s.matricula}', '${seg.data_ini}', '${seg.data_fim}', '${seg.hora_ini}', '${seg.hora_fim}')" class="w-full text-blue-700 bg-blue-50 hover:bg-blue-100 px-1 py-1 rounded text-[10px] font-bold transition cursor-pointer">✂️ Cortar</button>` : ''}
                         </td>
                     </tr>
                 `;
@@ -587,11 +603,29 @@
             document.getElementById('detailsModal').classList.remove('hidden');
         }
 
+        // SALVA ALTERAÇÃO DE EMPRESA OU DE TIPO DIARIA/SUPLEMENTAR SEM BUROCRACIA
+        function atualizarParametroDireto(registroId, valor, campo) {
+            if (!modificacoes.editados[registroId]) {
+                let ref = execRaw.find(x => x.registroIdTemp === registroId) || modificacoes.adicionados.find(x => x.registroIdTemp === registroId);
+                modificacoes.editados[registroId] = { 
+                    data_ini: ref.data_ini, data_fim: ref.data_fim, 
+                    hora_ini: ref.hora_ini, hora_fim: ref.hora_fim, 
+                    local: ref.local, justificativa: "" 
+                };
+            }
+            modificacoes.editados[registroId][campo] = valor;
+            modificacoes.editados[registroId].justificativa = `Alterado parametro [${campo}] para [${valor}].`;
+            
+            guardarAlteracoes();
+            processData();
+            openDetails(currentModalMatricula);
+        }
+
         function atualizarCampoDireto(registroId, novoValor, campo, dIniOriginal, dFimOriginal, hIniOriginal, hFimOriginal) {
             let valorFormatado = novoValor;
             if (campo === 'hora_ini' || campo === 'hora_fim') {
                 if (!validarFormatoHoraCompleto(novoValor)) {
-                    alert("⚠️ Formato de hora inválido! Use o padrão HH:MM (Ex: 13:00)");
+                    alert("⚠️ Use o padrão HH:MM (Ex: 13:00)");
                     openDetails(currentModalMatricula);
                     return;
                 }
@@ -601,17 +635,16 @@
             }
 
             if (!modificacoes.editados[registroId]) {
+                let ref = execRaw.find(x => x.registroIdTemp === registroId) || modificacoes.adicionados.find(x => x.registroIdTemp === registroId);
                 modificacoes.editados[registroId] = { 
-                    data_ini: dIniOriginal, 
-                    data_fim: dFimOriginal, 
-                    hora_ini: hIniOriginal, 
-                    hora_fim: hFimOriginal, 
-                    justificativa: "" 
+                    data_ini: dIniOriginal, data_fim: dFimOriginal, 
+                    hora_ini: hIniOriginal, hora_fim: hFimOriginal, 
+                    local: ref ? ref.local : "TCCC", justificativa: "" 
                 };
             }
             
             modificacoes.editados[registroId][campo] = valorFormatado;
-            modificacoes.editados[registroId].justificativa = `Ajuste rapido de ${campo} para ${valorFormatado}. Original: ${campo === 'hora_ini' ? hIniOriginal : campo === 'hora_fim' ? hFimOriginal : campo === 'data_ini' ? dIniOriginal : dFimOriginal}`;
+            modificacoes.editados[registroId].justificativa = `Mudanca de ${campo} para ${valorFormatado}.`;
 
             guardarAlteracoes(); 
             processData(); 
@@ -622,17 +655,18 @@
             const linha = document.getElementById('add_linha').value.trim();
             const veiculo = document.getElementById('add_veiculo').value.trim();
             const local = document.getElementById('add_local').value;
+            const tipo_jornada = document.getElementById('add_tipo_jornada').value;
             const data_ini = document.getElementById('add_data_ini').value;
             const hora_ini = document.getElementById('add_hora_ini').value;
             const hora_fim = document.getElementById('add_hora_fim').value;
 
             if(!linha || !veiculo || !data_ini || !hora_ini || !hora_fim) {
-                alert("⚠️ Por favor, preencha todos os campos para inserir a nova jornada.");
+                alert("⚠️ Preencha todos os campos.");
                 return;
             }
 
             if (!validarFormatoHoraCompleto(hora_ini) || !validarFormatoHoraCompleto(hora_fim)) {
-                alert("⚠️ Por favor, digite as horas corretamente no formato HH:MM (Exemplo: 13:00)");
+                alert("⚠️ Use o formato HH:MM (Ex: 13:00)");
                 return;
             }
 
@@ -642,17 +676,11 @@
             const novoId = `ADD_${currentModalMatricula}_MANUAL_${Date.now()}`;
 
             const novaJornada = {
-                escala: "INSERÇÃO MANUAL AUDITORIA",
-                data_ini: dataFormatada, 
-                data_fim: dataFormatada, 
-                hora_ini: hIniCompleta, 
-                hora_fim: hFimCompleta,
-                matricula: currentModalMatricula, 
-                veiculo: veiculo, 
-                linha: linha,
+                escala: tipo_jornada === "SUPLEMENTAR" ? "SUPLEMENTAR MANUAL" : "INSERÇÃO MANUAL",
+                data_ini: dataFormatada, data_fim: dataFormatada, hora_ini: hIniCompleta, hora_fim: hFimCompleta,
+                matricula: currentModalMatricula, veiculo: veiculo, linha: linha,
                 col8: "001", col9: "001", col10: "000",
-                local: local, 
-                duration: getDurationHrs(dataFormatada, hIniCompleta, dataFormatada, hFimCompleta),
+                local: local, duration: getDurationHrs(dataFormatada, hIniCompleta, dataFormatada, hFimCompleta),
                 registroIdTemp: novoId
             };
 
@@ -660,7 +688,7 @@
             
             modificacoes.editados[novoId] = {
                 data_ini: dataFormatada, data_fim: dataFormatada, hora_ini: hIniCompleta, hora_fim: hFimCompleta,
-                justificativa: `Jornada injetada manualmente na auditoria para a empresa ${local} na linha ${linha}.`
+                local: local, tipo_jornada: tipo_jornada, justificativa: `Jornada injetada como ${tipo_jornada}.`
             };
 
             guardarAlteracoes(); 
@@ -671,52 +699,50 @@
             document.getElementById('add_veiculo').value = "";
             document.getElementById('add_hora_ini').value = "";
             document.getElementById('add_hora_fim').value = "";
-            alert("Trecho operacional inserido com sucesso!");
+            alert("Inserido com sucesso!");
         }
 
         function fatiarReserva(registroId, matricula, dataIni, dataFim, horaIni, horaFim) {
-            const hViagemInicio = prompt(`O plantão atual inicia às ${horaIni.substring(0,5)} e termina às ${horaFim.substring(0,5)}.\n\nDigite a HORA DE INÍCIO da linha real feita no meio dele (Exemplo: 15:00):`);
+            const hViagemInicio = prompt(`Inicia às ${horaIni.substring(0,5)} e termina às ${horaFim.substring(0,5)}.\nDigite a HORA DE INÍCIO da viagem:`);
             if (!hViagemInicio) return;
-            const hViagemFim = prompt(`Digite a HORA DE TÉRMINO da linha real feita (Exemplo: 17:00):`);
+            const hViagemFim = prompt(`Digite a HORA DE TÉRMINO da viagem:`);
             if (!hViagemFim) return;
 
             const tFatiarIni = hViagemInicio + ":00";
             const tFatiarFim = hViagemFim + ":00";
 
             if (tFatiarIni <= horaIni || tFatiarFim >= horaFim || tFatiarIni >= tFatiarFim) {
-                alert("⚠️ Erro: Os horários da viagem digitados precisam estar dentro do intervalo do plantão!");
+                alert("Horários inconsistentes!");
                 return;
             }
 
-            modificacoes.editados[registroId] = {
-                data_ini: dataIni, data_fim: dataIni, hora_ini: horaIni, hora_fim: tFatiarIni,
-                justificativa: `[Plantao Reduzido] Cortado devido a linha realizada entre ${hViagemInicio} e ${hViagemFim}.`
-            };
-
             let ref = execRaw.find(x => x.registroIdTemp === registroId) || modificacoes.adicionados.find(x => x.registroIdTemp === registroId);
+
+            modificacoes.editados[registroId] = {
+                data_ini: dataIni, data_fim: dataIni, hora_ini: horaIni, hora_fim: tFatiarIni, local: ref.local,
+                justificativa: `[Corte] Dividido de reserva.`
+            };
 
             const novoIdPost = `ADD_${matricula}_RES_${Date.now()}`;
             const novaReservaPost = {
-                escala: ref ? ref.escala : "PLANTÃO CORTADO",
-                data_ini: dataFim, data_fim: dataFim, hora_ini: tFatiarFim, hora_fim: horaFim,
-                matricula: matricula, veiculo: ref ? ref.veiculo : "0000", linha: ref ? ref.linha : "RES",
-                col8: ref ? ref.col8 : "001", col9: ref ? ref.col9 : "001", col10: ref ? ref.col10 : "000",
-                local: ref ? ref.local : "TCCC", duration: getDurationHrs(dataFim, tFatiarFim, dataFim, horaFim),
+                escala: ref.escala, data_ini: dataFim, data_fim: dataFim, hora_ini: tFatiarFim, hora_fim: horaFim,
+                matricula: matricula, veiculo: ref.veiculo, linha: ref.linha,
+                col8: ref.col8, col9: ref.col9, col10: ref.col10,
+                local: ref.local, duration: getDurationHrs(dataFim, tFatiarFim, dataFim, horaFim),
                 registroIdTemp: novoIdPost
             };
 
             modificacoes.adicionados.push(novaReservaPost);
-            
             modificacoes.editados[novoIdPost] = {
-                data_ini: dataFim, data_fim: dataFim, hora_ini: tFatiarFim, hora_fim: horaFim,
-                justificativa: `[Pedaco Final Plantao] Gerado automaticamente apos divisao.`
+                data_ini: dataFim, data_fim: dataFim, hora_ini: tFatiarFim, hora_fim: horaFim, local: ref.local,
+                justificativa: `[Corte] Resíduo da divisão.`
             };
 
             guardarAlteracoes(); processData(); openDetails(matricula);
         }
 
         function excluirSegmento(registroId, matricula) {
-            if (confirm("Remover definitivamente este trecho realizado? O saldo do motorista será recalculado.")) {
+            if (confirm("Remover definitivamente este trecho?")) {
                 modificacoes.excluidos.push(registroId);
                 guardarAlteracoes(); processData(); openDetails(matricula);
             }
@@ -786,12 +812,16 @@
             return s;
         }
 
+        // RESTRUTURAÇÃO COMPLETA DA EXPORTAÇÃO SEPARANDO DIÁRIA, SUPLEMENTAR E FILTRANDO EMPRESA INDIVIDUAL POR TRECHO
         function exportarProcessamentoCompleto() {
-            if (execRaw.length === 0 && modificacoes.adicionados.length === 0) { alert("Nenhum registro ativo disponível."); return; }
+            if (execRaw.length === 0 && modificacoes.adicionados.length === 0) { alert("Nenhum registro operacional ativo disponível."); return; }
+            
             let arquivosPorEmpresa = {};
+            let linhasSuplementar = []; // Agrupador do arquivo suplementar unificado
             let linhasAuditoria = ["Matricula,Empresa,Data_Item,Linha_Original,Acao_Realizada,Inicio_Original,Inicio_Ajustado,Fim_Original,Fim_Ajustado,Justificativa_Motivo"];
             let totalAlteracoes = 0;
 
+            // Registra exclusões no Log
             modificacoes.excluidos.forEach(idExcluido => {
                 let originalItem = execRaw.find(x => x.registroIdTemp === idExcluido);
                 if (originalItem) {
@@ -804,36 +834,57 @@
 
             baseCompletaExport.forEach((originalItem) => {
                 const idReg = originalItem.registroIdTemp;
-                const empresaNome = originalItem.local;
-                if (!arquivosPorEmpresa[empresaNome]) arquivosPorEmpresa[empresaNome] = [];
-
                 if (modificacoes.excluidos.includes(idReg)) return;
 
-                let dIniFinal = originalItem.data_ini, dFimFinal = originalItem.data_fim, hIniFinal = originalItem.hora_ini, hFimFinal = originalItem.hora_fim;
-                let foiEditado = false;
+                // Captura os valores padrões ou editados de tempo, local e tipo de jornada
+                let dIniFinal = originalItem.data_ini;
+                let dFimFinal = originalItem.data_fim;
+                let hIniFinal = originalItem.hora_ini;
+                let hFimFinal = originalItem.hora_fim;
+                let empresaDestino = originalItem.local; // Pode ter sido alterado dinamicamente
+                
+                let tipoJornada = "DIARIA";
+                if (originalItem.escala && originalItem.escala.toUpperCase().includes("SUPLEMENTAR")) {
+                    tipoJornada = "SUPLEMENTAR";
+                }
 
+                let foiEditado = false;
                 if (modificacoes.editados[idReg]) {
-                    dIniFinal = modificacoes.editados[idReg].data_ini; dFimFinal = modificacoes.editados[idReg].data_fim;
-                    hIniFinal = modificacoes.editados[idReg].hora_ini; hFimFinal = modificacoes.editados[idReg].hora_fim;
+                    if (modificacoes.editados[idReg].data_ini) dIniFinal = modificacoes.editados[idReg].data_ini;
+                    if (modificacoes.editados[idReg].data_fim) dFimFinal = modificacoes.editados[idReg].data_fim;
+                    if (modificacoes.editados[idReg].hora_ini) hIniFinal = modificacoes.editados[idReg].hora_ini;
+                    if (modificacoes.editados[idReg].hora_fim) hFimFinal = modificacoes.editados[idReg].hora_fim;
+                    if (modificacoes.editados[idReg].local) empresaDestino = modificacoes.editados[idReg].local;
+                    if (modificacoes.editados[idReg].tipo_jornada) tipoJornada = modificacoes.editados[idReg].tipo_jornada;
                     foiEditado = true;
                 }
 
                 if (foiEditado) {
-                    let justificativaSalva = modificacoes.editados[idReg].justificativa || "Ajuste manual rapido.";
-                    linhasAuditoria.push([originalItem.matricula, empresaNome, originalItem.data_ini, originalItem.linha, "ALTERACAO/QUEBRA DE JORNADA", `${originalItem.data_ini} ${originalItem.hora_ini}`, `${dIniFinal} ${hIniFinal}`, `${originalItem.data_fim} ${originalItem.hora_fim}`, `${dFimFinal} ${hFimFinal}`, `"${justificativaSalva.replace(/"/g, '""')}"`].join(","));
+                    let logTexto = modificacoes.editados[idReg].justificativa || "Ajuste rapido.";
+                    linhasAuditoria.push([originalItem.matricula, empresaDestino, originalItem.data_ini, originalItem.linha, `ALTERACAO PARA ${tipoJornada}`, `${originalItem.data_ini} ${originalItem.hora_ini}`, `${dIniFinal} ${hIniFinal}`, `${originalItem.data_fim} ${originalItem.hora_fim}`, `${dFimFinal} ${hFimFinal}`, `"${logTexto.replace(/"/g, '""')}"`].join(","));
                     totalAlteracoes++;
                 }
 
+                // Formatações padrões para compatibilidade com o sistema
                 const matriculaFormatada = String(originalItem.matricula).trim().padStart(6, '0');
                 const veiculoFormatado = String(originalItem.veiculo).trim().padStart(7, '0');
                 let linhaFormatada = String(originalItem.linha).trim();
                 if (/^\d+$/.test(linhaFormatada)) linhaFormatada = linhaFormatada.padStart(10, '0');
 
-                const linhaSistemica = [dIniFinal, dFimFinal, hIniFinal, hFimFinal, matriculaFormatada, veiculoFormatado, linhaFormatada, originalItem.col8, originalItem.col9, originalItem.col10].join(";");
-                arquivosPorEmpresa[empresaNome].push(linhaSistemica);
+                const linhaSistemicaString = [dIniFinal, dFimFinal, hIniFinal, hFimFinal, matriculaFormatada, veiculoFormatado, linhaFormatada, originalItem.col8, originalItem.col9, originalItem.col10].join(";");
+
+                // DIVISÃO DE DIRECIONAMENTO DE ACORDO COM A SUA NOVA REGRA
+                if (tipoJornada === "SUPLEMENTAR") {
+                    linhasSuplementar.push(linhaSistemicaString);
+                } else {
+                    if (!arquivosPorEmpresa[empresaDestino]) arquivosPorEmpresa[empresaDestino] = [];
+                    arquivosPorEmpresa[empresaDestino].push(linhaSistemicaString);
+                }
             });
 
             let delay = 0;
+            
+            // 1. Dispara os downloads de Diárias divididos por Empresa/Bandeira
             for (const empresa in arquivosPorEmpresa) {
                 if(arquivosPorEmpresa[empresa].length > 0) {
                     setTimeout(() => { dispararDownload(arquivosPorEmpresa[empresa].join("\n"), `${dataDetectadaArquivo} - ${empresa}.csv`); }, delay);
@@ -841,10 +892,17 @@
                 }
             }
 
+            // 2. SE HOUVER SUPLEMENTAR, dispara o CSV específico "suplementar.csv"
+            if (linhasSuplementar.length > 0) {
+                setTimeout(() => { dispararDownload(linhasSuplementar.join("\n"), `${dataDetectadaArquivo} - suplementar.csv`); }, delay);
+                delay += 300;
+            }
+
+            // 3. Dispara o relatório consolidado da Auditoria se houver modificações
             if (totalAlteracoes > 0) {
-                setTimeout(() => { dispararDownload(linhasAuditoria.join("\n"), `auditoria_alteracoes_consolidado_${dataDetectadaArquivo}.csv`); alert("Sucesso! Planilhas operacionais e de auditoria exportadas."); }, delay + 200);
+                setTimeout(() => { dispararDownload(linhasAuditoria.join("\n"), `auditoria_alteracoes_consolidado_${dataDetectadaArquivo}.csv`); alert("Sucesso! Arquivos Operacionais, Suplementares e de Auditoria exportados."); }, delay + 200);
             } else {
-                setTimeout(() => { alert("Exportação concluída!"); }, delay);
+                setTimeout(() => { alert("Exportação concluída com sucesso!"); }, delay);
             }
         }
 
