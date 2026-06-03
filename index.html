@@ -71,6 +71,8 @@
                     <button onclick="setFilter('suplementar')" id="btn-filter-suplementar" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">📋 Escala Suplementar</button>
                     <button onclick="setFilter('divergent')" id="btn-filter-divergent" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Com Divergência</button>
                     <button onclick="setFilter('extra')" id="btn-filter-extra" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Hora Extra (>30m)</button>
+                    <button onclick="setFilter('menos')" id="btn-filter-menos" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Hora Faltante (&lt;-30m)</button>
+                    <button onclick="setFilter('absent')" id="btn-filter-absent" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Falta Total</button>
                 </div>
                 <div class="w-full xl:w-64 relative">
                     <input type="text" id="searchInput" oninput="handleSearch()" placeholder="🔍 Pesquisar matrícula..." class="w-full pl-3 pr-4 py-2 rounded-lg text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
@@ -204,15 +206,6 @@
             </div>
         </div>
     </div>
-
-    ```
-
----
-
-### 💾 PARTE 2: As Regras e a Lógica de Auditoria (JavaScript)
-Cole este bloco logo abaixo da Parte 1 (antes do fechamento da tag `</body>`). Ele contém a correção do modal (`segmentosExecutados`), a máscara dos relógios e as exportações inteligentes.
-
-```html
 <script>
         let modificacoes = JSON.parse(localStorage.getItem('modificacoes_jornada_v3')) || { excluidos: [], editados: {}, adicionados: [] };
         if(!modificacoes.adicionados) modificacoes.adicionados = [];
@@ -409,7 +402,8 @@ Cole este bloco logo abaixo da Parte 1 (antes do fechamento da tag `</body>`). E
                 return { ...s, saldo: saldo, status: status, max_break_mins: maxBreakMins, violacao_intrajornada: violacaoIntrajornada };
             });
 
-            processedSummaries.sort((a, b) => parseInt(a.matricula) - parseInt(b.matricula));
+            // ATUALIZAÇÃO - COLOCA EM ORDEM DE SALDO MAIOR PARA O MENOR
+            processedSummaries.sort((a, b) => b.saldo - a.saldo);
             renderDashboard();
         }
 
@@ -496,7 +490,6 @@ Cole este bloco logo abaixo da Parte 1 (antes do fechamento da tag `</body>`). E
             });
         }
 
-        // CORREÇÃO DA VARIÁVEL DE EXECUÇÃO DO MODAL (FIXED)
         function openDetails(matricula) {
             currentModalMatricula = matricula;
             const s = processedSummaries.find(x => x.matricula === matricula); if (!s) return;
@@ -596,7 +589,15 @@ Cole este bloco logo abaixo da Parte 1 (antes do fechamento da tag `</body>`). E
                 `;
             });
 
-            if (linhasVisiveis === 0) eBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">Nenhum trecho operacional ativo.</td></tr>`;
+            if (linhasVisiveis === 0) {
+                eBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-rose-600 bg-rose-50/50 rounded-lg border border-dashed border-rose-200">
+                            <div class="font-bold text-sm">🚨 Motorista com Falta Total Detectada</div>
+                            <div class="text-[11px] text-slate-500 mt-1">Este funcionário possui escala programada, mas nenhum pega executado nos arquivos CSV. Utilize a barra superior verde para injetar um trecho manual caso necessário.</div>
+                        </td>
+                    </tr>`;
+            }
             document.getElementById('detailsModal').classList.remove('hidden');
         }
 
@@ -938,7 +939,6 @@ Cole este bloco logo abaixo da Parte 1 (antes do fechamento da tag `</body>`). E
             });
 
             let delay = 0;
-            
             for (const empresa in arquivosPorEmpresa) {
                 if(arquivosPorEmpresa[empresa].length > 0) {
                     setTimeout(() => { dispararDownload(arquivosPorEmpresa[empresa].join("\n"), `${dataDetectadaArquivo} - ${empresa}.csv`); }, delay);
