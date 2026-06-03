@@ -51,20 +51,14 @@
         </header>
 
         <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
-            
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" id="kpiSection">
-            </section>
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" id="kpiSection"></section>
 
             <section class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                    📂 Carregar Arquivo Excel Master
-                </h2>
-                <p class="text-xs text-slate-500 mb-4">
-                    Insira a planilha original do dia (contendo as abas <code class="bg-slate-100 text-emerald-700 px-1 rounded font-mono font-bold">ESCALA</code>, <code class="bg-slate-100 text-slate-700 px-1 rounded font-mono">TCCC</code>, <code class="bg-slate-100 text-slate-700 px-1 rounded font-mono">SARANDI</code>, etc.).
-                </p>
+                <h2 class="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">📂 Carregar Arquivos de Jornada (.xlsx ou .csv)</h2>
+                <p class="text-xs text-slate-500 mb-4">Insira a planilha unificada ou selecione os arquivos de escala e empresas extraídos individualmente.</p>
                 <div class="p-5 border-2 border-dashed border-slate-200 rounded-lg hover:border-emerald-500 transition bg-slate-50 text-center cursor-pointer relative">
-                    <label class="block text-sm font-medium text-slate-700 mb-2 cursor-pointer">📊 Selecione o arquivo .xlsx ou .xls operacional</label>
-                    <input type="file" id="excelMasterFile" accept=".xlsx, .xls" class="mx-auto block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
+                    <label class="block text-sm font-medium text-slate-700 mb-2 cursor-pointer">📊 Selecione os arquivos operacionais</label>
+                    <input type="file" id="excelMasterFile" accept=".xlsx, .xls, .csv" multiple class="mx-auto block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
                 </div>
                 <div id="fileInfoBadge" class="hidden mt-3 p-2.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold border border-emerald-100 text-center"></div>
             </section>
@@ -77,8 +71,6 @@
                     <button onclick="setFilter('suplementar')" id="btn-filter-suplementar" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">📋 Escala Suplementar</button>
                     <button onclick="setFilter('divergent')" id="btn-filter-divergent" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Com Divergência</button>
                     <button onclick="setFilter('extra')" id="btn-filter-extra" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Hora Extra (>30m)</button>
-                    <button onclick="setFilter('menos')" id="btn-filter-menos" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Hora Faltante (&lt;-30m)</button>
-                    <button onclick="setFilter('absent')" id="btn-filter-absent" class="px-4 py-2 text-sm font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">Falta Total</button>
                 </div>
                 <div class="w-full xl:w-64 relative">
                     <input type="text" id="searchInput" oninput="handleSearch()" placeholder="🔍 Pesquisar matrícula..." class="w-full pl-3 pr-4 py-2 rounded-lg text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
@@ -102,9 +94,7 @@
                         </thead>
                         <tbody id="comparisonTableBody" class="divide-y divide-slate-100">
                             <tr>
-                                <td colspan="8" class="px-6 py-10 text-center text-slate-400">
-                                    Por favor, selecione e importe o arquivo Excel unificado para iniciar as análises de tráfego.
-                                </td>
+                                <td colspan="8" class="px-6 py-10 text-center text-slate-400">Por favor, selecione e importe os arquivos para iniciar.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -125,7 +115,7 @@
             <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900" id="modalTitle">Detalhamento e Ajustes de Rotas</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Defina se o trecho é Diária/Suplementar e altere a Empresa de destino individualmente caso o motorista rode em duas bandeiras.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Defina se o trecho é Diária/Suplementar e altere a Empresa de destino individualmente.</p>
                 </div>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold p-1 cursor-pointer">&times;</button>
             </div>
@@ -176,9 +166,7 @@
 
             <div class="flex-1 p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col lg:col-span-4">
-                    <h4 class="font-bold text-blue-700 text-sm border-b border-blue-100 pb-2 mb-3 flex items-center gap-1.5">
-                        🗓️ Escala Programada (Base)
-                    </h4>
+                    <h4 class="font-bold text-blue-700 text-sm border-b border-blue-100 pb-2 mb-3 flex items-center gap-1.5">🗓️ Escala Programada (Base)</h4>
                     <div class="overflow-x-auto flex-1">
                         <table class="w-full text-xs text-left">
                             <thead class="bg-slate-50 text-slate-600 font-semibold uppercase">
@@ -195,9 +183,7 @@
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col lg:col-span-8">
-                    <h4 class="font-bold text-emerald-700 text-sm border-b border-emerald-100 pb-2 mb-3 flex items-center gap-1.5">
-                        ✅ Execução Realizada (Ajustes Rápidos de Jornada)
-                    </h4>
+                    <h4 class="font-bold text-emerald-700 text-sm border-b border-emerald-100 pb-2 mb-3 flex items-center gap-1.5">✅ Execução Realizada (Ajustes Rápidos de Jornada)</h4>
                     <div class="overflow-x-auto flex-1">
                         <table class="w-full text-xs text-left">
                             <thead class="bg-slate-50 text-slate-600 font-semibold uppercase">
@@ -219,6 +205,14 @@
         </div>
     </div>
 
+    ```
+
+---
+
+### 💾 PARTE 2: As Regras e a Lógica de Auditoria (JavaScript)
+Cole este bloco logo abaixo da Parte 1 (antes do fechamento da tag `</body>`). Ele contém a correção do modal (`segmentosExecutados`), a máscara dos relógios e as exportações inteligentes.
+
+```html
 <script>
         let modificacoes = JSON.parse(localStorage.getItem('modificacoes_jornada_v3')) || { excluidos: [], editados: {}, adicionados: [] };
         if(!modificacoes.adicionados) modificacoes.adicionados = [];
@@ -297,6 +291,11 @@
             if (!nomeLinha) return false;
             const n = String(nomeLinha).toUpperCase().trim();
             return n.includes('RES') || n.includes('PL') || n === 'PLS' || n === 'PLN' || n.includes('RESCV') || n.includes('RES-P');
+        }
+
+        function linhaEhCabecalhoDeTexto(linhaMatriz) {
+            if (!linhaMatriz || !linhaMatriz[5]) return true;
+            return isNaN(Number(String(linhaMatriz[5]).trim()));
         }
 
         function getDurationHrs(dI, hI, dF, hF) {
@@ -497,6 +496,7 @@
             });
         }
 
+        // CORREÇÃO DA VARIÁVEL DE EXECUÇÃO DO MODAL (FIXED)
         function openDetails(matricula) {
             currentModalMatricula = matricula;
             const s = processedSummaries.find(x => x.matricula === matricula); if (!s) return;
@@ -550,14 +550,12 @@
 
                 let dIniOriginal = seg.data_ini, dFimOriginal = seg.data_fim, hIniOriginal = seg.hora_ini, hFimOriginal = seg.hora_fim;
                 
-                // Descobrir tipo atual salvo na memória
                 let tipoAtualJornada = "DIARIA";
                 if (seg.escala && seg.escala.toUpperCase().includes("SUPLEMENTAR")) tipoAtualJornada = "SUPLEMENTAR";
                 if (modificacoes.editados[seg.registroId] && modificacoes.editados[seg.registroId].tipo_jornada) {
                     tipoAtualJornada = modificacoes.editados[seg.registroId].tipo_jornada;
                 }
 
-                // ADICIONADOS CONTROLES DE EMPRESA E DIARIA/SUPLEMENTAR EM CADA LINHA
                 eBody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-100 ${trechoSobreposto ? 'bg-purple-50' : isResiduoMadrugada ? 'bg-red-50/50' : ''}">
                         <td class="py-2.5 px-2 font-medium text-slate-700">
@@ -565,7 +563,6 @@
                                 <span class="font-bold text-slate-900 bg-slate-100 px-1 rounded">${seg.linha}</span>
                                 ${ehReservaOuPlantao ? '<span class="text-[9px] bg-blue-100 text-blue-800 px-1 font-bold rounded">PLANTÃO</span>' : ''}
                             </div>
-                            
                             <div class="flex flex-col gap-1 mt-1">
                                 <select onchange="atualizarParametroDireto('${seg.registroId}', this.value, 'local')" class="text-[10px] border rounded bg-white p-0.5 font-bold text-emerald-800 outline-none">
                                     <option value="TCCC" ${seg.local === 'TCCC' ? 'selected':''}>TCCC</option>
@@ -603,7 +600,6 @@
             document.getElementById('detailsModal').classList.remove('hidden');
         }
 
-        // SALVA ALTERAÇÃO DE EMPRESA OU DE TIPO DIARIA/SUPLEMENTAR SEM BUROCRACIA
         function atualizarParametroDireto(registroId, valor, campo) {
             if (!modificacoes.editados[registroId]) {
                 let ref = execRaw.find(x => x.registroIdTemp === registroId) || modificacoes.adicionados.find(x => x.registroIdTemp === registroId);
@@ -760,49 +756,113 @@
         }
 
         document.getElementById('excelMasterFile').addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const matches = file.name.match(/\d{8}/);
-            dataDetectadaArquivo = matches ? matches[0] : file.name.replace(/\.[^/.]+$/, "");
+            const files = e.target.files; if (!files || files.length === 0) return;
             
-            const badge = document.getElementById('fileInfoBadge');
-            badge.innerText = `📁 ARQUIVO CARREGADO: ${file.name} | DATA BASE IDENTIFICADA: ${dataDetectadaArquivo}`;
-            badge.classList.remove('hidden');
+            let novosItensEscala = [];
+            let novosItensExec = [];
+            let filesProcessed = 0;
 
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                escalaRaw = []; execRaw = [];
+            Array.from(files).forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const matches = file.name.match(/\d{8}/);
+                if (matches && !dataDetectadaArquivo) dataDetectadaArquivo = matches[0];
 
-                workbook.SheetNames.forEach(sheetName => {
-                    const ws = workbook.Sheets[sheetName];
-                    const matrix = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                    if (matrix.length === 0) return;
-                    const abaNormalizada = sheetName.toUpperCase().trim();
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    if (ext === 'csv') {
+                        const ws = workbook.Sheets[workbook.SheetNames[0]];
+                        const matrix = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        if (matrix.length > 0) {
+                            const nomeArquivoUpper = file.name.toUpperCase();
+                            
+                            let possuiCabecalho = linhaEhCabecalhoDeTexto(matrix[0]);
+                            let startIdx = possuiCabecalho ? 1 : 0;
 
-                    if (abaNormalizada === 'ESCALA') {
-                        originalEscalaHeader = matrix[0];
-                        for(let i = 1; i < matrix.length; i++) {
-                            const r = matrix[i]; if(!r || r.length < 6 || !r[5]) continue;
-                            escalaRaw.push({ escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), linha: String(r[7]||''), duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4])) });
+                            if (nomeArquivoUpper.includes('ESCALA')) {
+                                if (possuiCabecalho) originalEscalaHeader = matrix[0];
+                                else originalEscalaHeader = ["Escala", "Data_Ini", "Data_Fim", "Hora_Ini", "Hora_Fim", "Matricula", "Prefixo", "Linha"];
+                                
+                                for(let i = startIdx; i < matrix.length; i++) {
+                                    const r = matrix[i]; if(!r || r.length < 6 || !r[5]) continue;
+                                    novosItensEscala.push({ escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), linha: String(r[7]||''), duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4])) });
+                                }
+                            } else {
+                                let bandeiraDetectada = "TCCC";
+                                if(nomeArquivoUpper.includes("SARANDI")) bandeiraDetectada = "SARANDI";
+                                if(nomeArquivoUpper.includes("PAICANDU")) bandeiraDetectada = "PAICANDU";
+
+                                for(let i = startIdx; i < matrix.length; i++) {
+                                    const r = matrix[i]; if(!r || r.length < 6 || !r[5]) continue;
+                                    novosItensExec.push({
+                                        escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), 
+                                        hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), 
+                                        veiculo: String(r[6]||''), linha: String(r[7]||''), 
+                                        col8: r[8] ? String(r[8]).trim() : "001", col9: r[9] ? String(r[9]).trim() : "001", col10: r[10] ? String(r[10]).trim() : "000",
+                                        local: bandeiraDetectada, duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4]))
+                                    });
+                                }
+                            }
                         }
                     } else {
-                        for(let i = 1; i < matrix.length; i++) {
-                            const r = matrix[i]; if(!r || r.length < 6 || !r[5]) continue;
-                            execRaw.push({
-                                escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), 
-                                hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), 
-                                veiculo: String(r[6]||''), linha: String(r[7]||''), 
-                                col8: r[8] ? String(r[8]).trim() : "001", col9: r[9] ? String(r[9]).trim() : "001", col10: r[10] ? String(r[10]).trim() : "000",
-                                local: abaNormalizada, duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4]))
-                            });
-                        }
+                        workbook.SheetNames.forEach(sheetName => {
+                            const ws = workbook.Sheets[sheetName];
+                            const matrix = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                            if (matrix.length === 0) return;
+                            const abaNormalizada = sheetName.toUpperCase().trim();
+                            
+                            let possuiCabecalho = linhaEhCabecalhoDeTexto(matrix[0]);
+                            let startIdx = possuiCabecalho ? 1 : 0;
+
+                            if (abaNormalizada === 'ESCALA') {
+                                if (possuiCabecalho) originalEscalaHeader = matrix[0];
+                                else originalEscalaHeader = ["Escala", "Data_Ini", "Data_Fim", "Hora_Ini", "Hora_Fim", "Matricula", "Prefixo", "Linha"];
+                                
+                                for(let i = startIdx; i < matrix.length; i++) {
+                                    const r = matrix[i]; if(!r || r.length < 6 || !r[5]) continue;
+                                    novosItensEscala.push({ escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), linha: String(r[7]||''), duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4])) });
+                                }
+                            } else {
+                                for(let i = startIdx; i < matrix.length; i++) {
+                                    const r = matrix[i]; if(!r || r.length < 6 || !r[5]) continue;
+                                    novosItensExec.push({
+                                        escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), 
+                                        hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), 
+                                        veiculo: String(r[6]||''), linha: String(r[7]||''), 
+                                        col8: r[8] ? String(r[8]).trim() : "001", col9: r[9] ? String(r[9]).trim() : "001", col10: r[10] ? String(r[10]).trim() : "000",
+                                        local: abaNormalizada, duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4]))
+                                    });
+                                }
+                            }
+                        });
                     }
-                });
-                processData();
-                alert("Planilha Excel importada com sucesso!");
-            };
-            reader.readAsArrayBuffer(file);
+
+                    filesProcessed++;
+                    if (filesProcessed === files.length) {
+                        if (novosItensEscala.length > 0) escalaRaw = novosItensEscala;
+                        if (novosItensExec.length > 0) execRaw = [...execRaw, ...novosItensExec];
+                        
+                        let idsVistos = new Set();
+                        execRaw = execRaw.filter(item => {
+                            let uniqueKey = `${item.matricula}_${item.data_ini}_${item.hora_ini}_${item.linha}_${item.local}`;
+                            if(idsVistos.has(uniqueKey)) return false;
+                            idsVistos.add(uniqueKey);
+                            return true;
+                        });
+
+                        if (!dataDetectadaArquivo) dataDetectadaArquivo = "20052026";
+                        
+                        const badge = document.getElementById('fileInfoBadge');
+                        badge.innerText = `📊 SISTEMA CARREGADO COM SUCESSO | REGISTROS DE ESCALA: ${escalaRaw.length} | REGISTROS EXECUTADOS: ${execRaw.length}`;
+                        badge.classList.remove('hidden');
+                        
+                        processData();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
         });
 
         function normalizarHora(val) {
@@ -812,16 +872,14 @@
             return s;
         }
 
-        // RESTRUTURAÇÃO COMPLETA DA EXPORTAÇÃO SEPARANDO DIÁRIA, SUPLEMENTAR E FILTRANDO EMPRESA INDIVIDUAL POR TRECHO
         function exportarProcessamentoCompleto() {
             if (execRaw.length === 0 && modificacoes.adicionados.length === 0) { alert("Nenhum registro operacional ativo disponível."); return; }
             
             let arquivosPorEmpresa = {};
-            let linhasSuplementar = []; // Agrupador do arquivo suplementar unificado
+            let linhasSuplementar = []; 
             let linhasAuditoria = ["Matricula,Empresa,Data_Item,Linha_Original,Acao_Realizada,Inicio_Original,Inicio_Ajustado,Fim_Original,Fim_Ajustado,Justificativa_Motivo"];
             let totalAlteracoes = 0;
 
-            // Registra exclusões no Log
             modificacoes.excluidos.forEach(idExcluido => {
                 let originalItem = execRaw.find(x => x.registroIdTemp === idExcluido);
                 if (originalItem) {
@@ -836,12 +894,11 @@
                 const idReg = originalItem.registroIdTemp;
                 if (modificacoes.excluidos.includes(idReg)) return;
 
-                // Captura os valores padrões ou editados de tempo, local e tipo de jornada
                 let dIniFinal = originalItem.data_ini;
                 let dFimFinal = originalItem.data_fim;
                 let hIniFinal = originalItem.hora_ini;
                 let hFimFinal = originalItem.hora_fim;
-                let empresaDestino = originalItem.local; // Pode ter sido alterado dinamicamente
+                let empresaDestino = originalItem.local; 
                 
                 let tipoJornada = "DIARIA";
                 if (originalItem.escala && originalItem.escala.toUpperCase().includes("SUPLEMENTAR")) {
@@ -865,7 +922,6 @@
                     totalAlteracoes++;
                 }
 
-                // Formatações padrões para compatibilidade com o sistema
                 const matriculaFormatada = String(originalItem.matricula).trim().padStart(6, '0');
                 const veiculoFormatado = String(originalItem.veiculo).trim().padStart(7, '0');
                 let linhaFormatada = String(originalItem.linha).trim();
@@ -873,7 +929,6 @@
 
                 const linhaSistemicaString = [dIniFinal, dFimFinal, hIniFinal, hFimFinal, matriculaFormatada, veiculoFormatado, linhaFormatada, originalItem.col8, originalItem.col9, originalItem.col10].join(";");
 
-                // DIVISÃO DE DIRECIONAMENTO DE ACORDO COM A SUA NOVA REGRA
                 if (tipoJornada === "SUPLEMENTAR") {
                     linhasSuplementar.push(linhaSistemicaString);
                 } else {
@@ -884,7 +939,6 @@
 
             let delay = 0;
             
-            // 1. Dispara os downloads de Diárias divididos por Empresa/Bandeira
             for (const empresa in arquivosPorEmpresa) {
                 if(arquivosPorEmpresa[empresa].length > 0) {
                     setTimeout(() => { dispararDownload(arquivosPorEmpresa[empresa].join("\n"), `${dataDetectadaArquivo} - ${empresa}.csv`); }, delay);
@@ -892,13 +946,11 @@
                 }
             }
 
-            // 2. SE HOUVER SUPLEMENTAR, dispara o CSV específico "suplementar.csv"
             if (linhasSuplementar.length > 0) {
                 setTimeout(() => { dispararDownload(linhasSuplementar.join("\n"), `${dataDetectadaArquivo} - suplementar.csv`); }, delay);
                 delay += 300;
             }
 
-            // 3. Dispara o relatório consolidado da Auditoria se houver modificações
             if (totalAlteracoes > 0) {
                 setTimeout(() => { dispararDownload(linhasAuditoria.join("\n"), `auditoria_alteracoes_consolidado_${dataDetectadaArquivo}.csv`); alert("Sucesso! Arquivos Operacionais, Suplementares e de Auditoria exportados."); }, delay + 200);
             } else {
