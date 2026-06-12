@@ -402,7 +402,6 @@
                 return { ...s, saldo: saldo, status: status, max_break_mins: maxBreakMins, violacao_intrajornada: violacaoIntrajornada };
             });
 
-            // ATUALIZAÇÃO - COLOCA EM ORDEM DE SALDO MAIOR PARA O MENOR
             processedSummaries.sort((a, b) => b.saldo - a.saldo);
             renderDashboard();
         }
@@ -676,7 +675,7 @@
                 escala: tipo_jornada === "SUPLEMENTAR" ? "SUPLEMENTAR MANUAL" : "INSERÇÃO MANUAL",
                 data_ini: dataFormatada, data_fim: dataFormatada, hora_ini: hIniCompleta, hora_fim: hFimCompleta,
                 matricula: currentModalMatricula, veiculo: veiculo, linha: linha,
-                col8: "001", col9: "001", col10: "000",
+                col8: "001", col9: "001", col10: "001",
                 local: local, duration: getDurationHrs(dataFormatada, hIniCompleta, dataFormatada, hFimCompleta),
                 registroIdTemp: novoId
             };
@@ -724,7 +723,7 @@
             const novaReservaPost = {
                 escala: ref.escala, data_ini: dataFim, data_fim: dataFim, hora_ini: tFatiarFim, hora_fim: horaFim,
                 matricula: matricula, veiculo: ref.veiculo, linha: ref.linha,
-                col8: ref.col8, col9: ref.col9, col10: ref.col10,
+                col8: "001", col9: "001", col10: "001",
                 local: ref.local, duration: getDurationHrs(dataFim, tFatiarFim, dataFim, horaFim),
                 registroIdTemp: novoIdPost
             };
@@ -801,7 +800,7 @@
                                         escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), 
                                         hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), 
                                         veiculo: String(r[6]||''), linha: String(r[7]||''), 
-                                        col8: r[8] ? String(r[8]).trim() : "001", col9: r[9] ? String(r[9]).trim() : "001", col10: r[10] ? String(r[10]).trim() : "000",
+                                        col8: "001", col9: "001", col10: "001",
                                         local: bandeiraDetectada, duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4]))
                                     });
                                 }
@@ -832,7 +831,7 @@
                                         escala: String(r[0]||''), data_ini: String(r[1]||''), data_fim: String(r[2]||''), 
                                         hora_ini: normalizarHora(r[3]), hora_fim: normalizarHora(r[4]), matricula: String(r[5]).trim(), 
                                         veiculo: String(r[6]||''), linha: String(r[7]||''), 
-                                        col8: r[8] ? String(r[8]).trim() : "001", col9: r[9] ? String(r[9]).trim() : "001", col10: r[10] ? String(r[10]).trim() : "000",
+                                        col8: "001", col9: "001", col10: "001",
                                         local: abaNormalizada, duration: getDurationHrs(r[1], normalizarHora(r[3]), r[2], normalizarHora(r[4]))
                                     });
                                 }
@@ -889,7 +888,19 @@
                 }
             });
 
+            // Une a base original com as inserções manuais do usuário
             let baseCompletaExport = [...execRaw, ...modificacoes.adicionados];
+
+            // APLICAÇÃO DA REGRA DE ORDENAÇÃO COMPLETA: Agrupa por matrícula (A-Z) e desempatará por data/hora cronológica
+            baseCompletaExport.sort((a, b) => {
+                const matA = String(a.matricula).trim().padStart(6, '0');
+                const matB = String(b.matricula).trim().padStart(6, '0');
+                if (matA !== matB) return matA.localeCompare(matB);
+
+                const dataHoraA = parseDateTime(a.data_ini, a.hora_ini).getTime() || 0;
+                const dataHoraB = parseDateTime(b.data_ini, b.hora_ini).getTime() || 0;
+                return dataHoraA - dataHoraB;
+            });
 
             baseCompletaExport.forEach((originalItem) => {
                 const idReg = originalItem.registroIdTemp;
@@ -928,7 +939,8 @@
                 let linhaFormatada = String(originalItem.linha).trim();
                 if (/^\d+$/.test(linhaFormatada)) linhaFormatada = linhaFormatada.padStart(10, '0');
 
-                const linhaSistemicaString = [dIniFinal, dFimFinal, hIniFinal, hFimFinal, matriculaFormatada, veiculoFormatado, linhaFormatada, originalItem.col8, originalItem.col9, originalItem.col10].join(";");
+                // CORREÇÃO DO FINAL DA LINHA: Garante que os últimos valores de fechamento fixem estritamente em "001"
+                const linhaSistemicaString = [dIniFinal, dFimFinal, hIniFinal, hFimFinal, matriculaFormatada, veiculoFormatado, linhaFormatada, "001", "001", "001"].join(";");
 
                 if (tipoJornada === "SUPLEMENTAR") {
                     linhasSuplementar.push(linhaSistemicaString);
@@ -961,7 +973,11 @@
         function baixarAbaEscalaPura() {
             if(escalaRaw.length === 0) { alert("Nenhum dado na escala encontrado."); return; }
             let csvRows = []; csvRows.push(originalEscalaHeader.join(","));
-            escalaRaw.forEach(r => { csvRows.push([r.escala, r.data_ini, r.data_fim, r.hora_ini, r.hora_fim, r.matricula, '', r.linha].join(",")); });
+            
+            // Força a ordenação também da Escala Pura caso decida baixá-la individualmente
+            let escalaOrdenada = [...escalaRaw].sort((a,b) => String(a.matricula).trim().localeCompare(String(b.matricula).trim()));
+            
+            escalaOrdenada.forEach(r => { csvRows.push([r.escala, r.data_ini, r.data_fim, r.hora_ini, r.hora_fim, r.matricula, '', r.linha].join(",")); });
             dispararDownload(csvRows.join("\n"), `${dataDetectadaArquivo} - escala.csv`);
         }
 
@@ -973,6 +989,6 @@
 
         function toggleMenuGestao(event) { event.stopPropagation(); document.getElementById('menuGestaoDropdown').classList.toggle('hidden'); }
         function fecharMenuGestao() { document.getElementById('menuGestaoDropdown').classList.add('hidden'); }
-    </script>
+</script>
 </body>
 </html>
